@@ -7,8 +7,8 @@
   <style>
     body {
       display: flex;
-      flex-direction: column;
-      align-items: center;
+      flex-direction: row;
+      align-items: flex-start;
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 0;
@@ -23,26 +23,47 @@
       margin: 10px;
     }
     .controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       margin: 10px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    input[type="range"][orient="vertical"] {
+      writing-mode: bt-lr; /* IE */
+      -webkit-appearance: slider-vertical; /* WebKit */
+      width: 8px;
+      height: 150px;
+      padding: 0 5px;
     }
     input[type="number"] {
       width: 60px;
-      margin-left: 5px;
+      margin-top: 5px;
+    }
+    label, span {
+      font-size: 16px;
     }
   </style>
 </head>
 <body>
   <div class="controls">
-    <label for="fovSlider">Angle de visió (FOV): </label>
-    <input type="range" id="fovSlider" min="60" max="180" value="120">
-    <input type="number" id="fovInput" min="60" max="180" value="120">
-    <span id="fovValue">120</span> graus
-  </div>
-  <div class="controls">
-    <label for="rotationSlider">Rotació de la càmera: </label>
-    <input type="range" id="rotationSlider" min="0" max="180" value="90">
-    <input type="number" id="rotationInput" min="0" max="180" value="90">
-    <span id="rotationValue">90</span> graus
+    <div class="control-group">
+      <label for="fovSlider">Angle de visió (FOV):</label>
+      <input type="range" id="fovSlider" min="60" max="180" value="120" orient="vertical">
+      <input type="number" id="fovInput" min="60" max="180" value="120">
+      <span id="fovValue">120</span> graus
+    </div>
+    <div class="control-group">
+      <label for="rotationSlider">Rotació de la càmera:</label>
+      <input type="range" id="rotationSlider" min="0" max="180" value="90" orient="vertical">
+      <input type="number" id="rotationInput" min="0" max="180" value="90">
+      <span id="rotationValue">90</span> graus
+    </div>
   </div>
   <div class="container" id="canvasContainer"></div>
 
@@ -59,7 +80,7 @@
     // Canvas principal (vista 2D lateral)
     let mainSketch = function(p) {
       p.setup = function() {
-        let canvas = p.createCanvas(960, 480); // Canvas ajustat a format horitzontal (proporció 2:1)
+        let canvas = p.createCanvas(800, 480); // Reduïm l'amplada a 800 píxels
         canvas.parent('canvasContainer');
 
         // Crear objectes representatius (posicions ajustades per al nou espai)

@@ -10,6 +10,8 @@
       flex-direction: column;
       align-items: center;
       font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
     }
     .container {
       display: flex;
@@ -57,10 +59,10 @@
     // Canvas principal (vista 2D lateral)
     let mainSketch = function(p) {
       p.setup = function() {
-        let canvas = p.createCanvas(800, 640);
+        let canvas = p.createCanvas(960, 480); // Canvas ajustat a format horitzontal (proporció 2:1)
         canvas.parent('canvasContainer');
 
-        // Crear objectes representatius
+        // Crear objectes representatius (posicions ajustades per al nou espai)
         objects.push({ x: 200, y: p.height - 40 - 170, w: 20, h: 170, type: "persona", color: [255, 165, 0] }); // Persona (1,7 m)
         objects.push({ x: 300, y: p.height - 40 - 90, w: 40, h: 90, type: "taula", color: [139, 69, 19] }); // Taula (0,9 m)
         objects.push({ x: 400, y: p.height - 40, w: 30, h: 600, type: "arbre", color: [34, 139, 34], trunkColor: [101, 67, 33] }); // Arbre (6 m)
@@ -136,9 +138,9 @@
           let labelY = cameraY + r * p.sin(endAngle);
           p.fill(0);
           p.noStroke();
-          p.textSize(12);
+          p.textSize(24); // Mida més gran per a l'iPhone
           p.textAlign(p.CENTER, p.CENTER);
-          p.text(`${r/100}m`, labelX + 30, labelY);
+          p.text(`${r/100}m`, labelX + 50, labelY);
         }
 
         // Dibuixar la càmera amb forma
@@ -158,9 +160,9 @@
         let cameraHeightInMeters = (cameraHeight / 100).toFixed(2);
         p.fill(0);
         p.noStroke();
-        p.textSize(12);
+        p.textSize(24); // Mida més gran per a l'iPhone
         p.textAlign(p.RIGHT, p.CENTER);
-        p.text(`${cameraHeightInMeters}m`, cameraX - 20, cameraY);
+        p.text(`${cameraHeightInMeters}m`, cameraX - 30, cameraY);
 
         // Dibuixar el camp de visió
         let leftAngle = baseAngle - fovRad;
@@ -280,9 +282,9 @@
 
           p.fill(0);
           p.noStroke();
-          p.textSize(12);
+          p.textSize(24); // Mida més gran per a l'iPhone
           p.textAlign(p.CENTER, p.BOTTOM);
-          p.text(`${distanceInMeters}m`, objCenterX, obj.y - 5);
+          p.text(`${distanceInMeters}m`, objCenterX, obj.y - 10);
 
           if (isInFov) {
             p.stroke(255, 0, 0, 150);
@@ -299,7 +301,7 @@
           p.drawingContext.setLineDash([]);
         }
 
-        // Escala vertical
+        // Escala vertical (ajustada per al nou espai)
         let scaleX = p.width - 50;
         let scaleInterval = 50;
         let maxHeight = p.height - 40;
@@ -316,9 +318,9 @@
           p.line(scaleX - 10, y, scaleX, y);
           p.fill(0);
           p.noStroke();
-          p.textSize(12);
+          p.textSize(24); // Mida més gran per a l'iPhone
           p.textAlign(p.RIGHT, p.CENTER);
-          p.text(`${heightInMeters}m`, scaleX - 15, y);
+          p.text(`${heightInMeters}m`, scaleX - 20, y);
         }
 
         // Línia de suport per l’altura de la càmera

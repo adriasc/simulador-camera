@@ -34,11 +34,18 @@
       align-items: center;
       margin-bottom: 20px;
     }
-    input[type="range"][orient="vertical"] {
+    #fovSlider {
       writing-mode: bt-lr; /* IE */
       -webkit-appearance: slider-vertical; /* WebKit */
-      width: 12px; /* Més ample per facilitar el moviment */
-      height: 200px; /* Més alt per facilitar el moviment */
+      width: 12px;
+      height: 75px; /* Alçada reduïda a la meitat (FOV) */
+      padding: 0 5px;
+    }
+    #rotationSlider {
+      writing-mode: bt-lr; /* IE */
+      -webkit-appearance: slider-vertical; /* WebKit */
+      width: 12px;
+      height: 150px; /* Alçada reduïda (ROT) */
       padding: 0 5px;
     }
     input[type="number"] {

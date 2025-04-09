@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <title>Simulador de Càmera</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: Arial, sans-serif;
+    }
+    .container {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+    }
+    canvas {
+      border: 1px solid black;
+      margin: 10px;
+    }
+    .controls {
+      margin: 10px;
+    }
+    input[type="number"] {
+      width: 60px;
+      margin-left: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <label for="fovSlider">Angle de visió (FOV): </label>
+    <input type="range" id="fovSlider" min="60" max="180" value="120">
+    <input type="number" id="fovInput" min="60" max="180" value="120">
+    <span id="fovValue">120</span> graus
+  </div>
+  <div class="controls">
+    <label for="rotationSlider">Rotació de la càmera: </label>
+    <input type="range" id="rotationSlider" min="0" max="180" value="90">
+    <input type="number" id="rotationInput" min="0" max="180" value="90">
+    <span id="rotationValue">90</span> graus
+  </div>
+  <div class="container" id="canvasContainer"></div>
+
+  <script>
+    let cameraHeight = 160; // Altura de la càmera (1,60 m = 160 píxels)
+    let cameraX = 100; // Posició X inicial de la càmera
+    let fov = 120; // Camp de visió inicial
+    let cameraRotation = 90; // Rotació inicial
+    let objects = []; // Array d'objectes
+    let selectedObject = null; // Objecte seleccionat per moure
+    let fovSlider, rotationSlider, fovInput, rotationInput; // Controls lliscants i inputs
+    let isMovingCameraX = false; // Controlar si estem movent la càmera en l'eix X
+
+    // Canvas principal (vista 2D lateral)
+    let mainSketch = function(p) {
+      p.setup = function() {
+        let canvas = p.createCanvas(800, 640);
+        canvas.parent('canvasContainer');
+
+        // Crear objectes representatius
+        objects.push({ x: 200, y: p.height - 40 - 170, w: 20, h: 170, type: "persona", color: [255, 165, 0] }); // Persona (1,7 m)
+        objects.push({ x: 300, y: p.height - 40 - 90, w: 40, h: 90, type: "taula", color: [139, 69, 19] }); // Taula (0,9 m)
+        objects.push({ x: 400, y: p.height - 40, w: 30, h: 600, type: "arbre", color: [34, 139, 34], trunkColor: [101, 67, 33] }); // Arbre (6 m)
+        objects.push({ x: 500, y: p.height - 40 - 300, w: 15, h: 300, type: "semàfor", color: [128, 128, 128] }); // Semàfor (3 m)
+        objects.push({ x: 600, y: p.height - 40 - 30, w: 15, h: 30, type: "gos", color: [255, 255, 0] }); // Gos (0,3 m)
+
+        // Configurar sliders i inputs
+        fovSlider = document.getElementById('fovSlider');
+        fovInput = document.getElementById('fovInput');
+        rotationSlider = document.getElementById('rotationSlider');
+        rotationInput = document.getElementById('rotationInput');
+
+        // Actualitzar FOV amb el slider
+        fovSlider.addEventListener('input', () => {
+          fov = parseInt(fovSlider.value);
+          fovInput.value = fov;
+          document.getElementById('fovValue').textContent = fov;
+        });
+
+        // Actualitzar FOV amb l'input numèric
+        fovInput.addEventListener('input', () => {
+          let value = parseInt(fovInput.value);
+          if (value >= 60 && value <= 180) {
+            fov = value;
+            fovSlider.value = fov;
+            document.getElementById('fovValue').textContent = fov;
+          }
+        });
+
+        // Actualitzar rotació amb el slider
+        rotationSlider.addEventListener('input', () => {
+          let sliderValue = parseInt(rotationSlider.value);
+          cameraRotation = p.map(sliderValue, 0, 180, 90, -90);
+          rotationInput.value = sliderValue;
+          document.getElementById('rotationValue').textContent = sliderValue;
+        });
+
+        // Actualitzar rotació amb l'input numèric
+        rotationInput.addEventListener('input', () => {
+          let value = parseInt(rotationInput.value);
+          if (value >= 0 && value <= 180) {
+            cameraRotation = p.map(value, 0, 180, 90, -90);
+            rotationSlider.value = value;
+            document.getElementById('rotationValue').textContent = value;
+          }
+        });
+      };
+
+      p.draw = function() {
+        p.background(220); // Fons gris clar
+
+        // Dibuixar el terra
+        p.stroke(0);
+        p.strokeWeight(2);
+        p.line(0, p.height - 40, p.width, p.height - 40);
+
+        // Posició de la càmera
+        let cameraY = p.height - cameraHeight;
+
+        // Dibuixar arcs de distància
+        let fovRad = p.radians(fov / 2);
+        let baseAngle = p.radians(cameraRotation);
+        let startAngle = baseAngle - fovRad;
+        let endAngle = baseAngle + fovRad;
+
+        p.strokeWeight(1);
+        let distances = [50, 100, 200, 300];
+        for (let r of distances) {
+          p.stroke(100, 100, 100, 100); // Gris més fosc
+          p.noFill();
+          p.arc(cameraX, cameraY, r * 2, r * 2, startAngle, endAngle);
+          let labelX = cameraX + r * p.cos(endAngle);
+          let labelY = cameraY + r * p.sin(endAngle);
+          p.fill(0);
+          p.noStroke();
+          p.textSize(12);
+          p.textAlign(p.CENTER, p.CENTER);
+          p.text(`${r/100}m`, labelX + 30, labelY);
+        }
+
+        // Dibuixar la càmera amb forma
+        p.push();
+        p.translate(cameraX, cameraY);
+        p.rotate(p.radians(cameraRotation));
+        p.fill(100); // Gris fosc per al cos
+        p.noStroke();
+        p.rect(-15, -20, 30, 40); // Cos de la càmera
+        p.fill(0); // Negre per a l'objectiu
+        p.ellipse(0, -10, 10, 10); // Objectiu
+        p.fill(100); // Visor
+        p.triangle(-5, -20, 5, -20, 0, -30); // Visor triangular
+        p.pop();
+
+        // Mostrar l'alçada de la càmera a l'esquerra
+        let cameraHeightInMeters = (cameraHeight / 100).toFixed(2);
+        p.fill(0);
+        p.noStroke();
+        p.textSize(12);
+        p.textAlign(p.RIGHT, p.CENTER);
+        p.text(`${cameraHeightInMeters}m`, cameraX - 20, cameraY);
+
+        // Dibuixar el camp de visió
+        let leftAngle = baseAngle - fovRad;
+        let rightAngle = baseAngle + fovRad;
+        let groundY = p.height - 40;
+        let leftX, leftY, rightX, rightY;
+
+        if (p.sin(leftAngle) > 0) {
+          let t = (groundY - cameraY) / p.sin(leftAngle);
+          leftX = cameraX + p.cos(leftAngle) * t;
+          leftY = groundY;
+        } else {
+          let t = (p.cos(leftAngle) > 0 ? (p.width - cameraX) : -cameraX) / p.cos(leftAngle);
+          leftX = cameraX + p.cos(leftAngle) * t;
+          leftY = cameraY + p.sin(leftAngle) * t;
+        }
+        if (p.sin(rightAngle) > 0) {
+          let t = (groundY - cameraY) / p.sin(rightAngle);
+          rightX = cameraX + p.cos(rightAngle) * t;
+          rightY = groundY;
+        } else {
+          let t = (p.cos(rightAngle) > 0 ? (p.width - cameraX) : -cameraX) / p.cos(rightAngle);
+          rightX = cameraX + p.cos(rightAngle) * t;
+          rightY = cameraY + p.sin(rightAngle) * t;
+        }
+
+        p.stroke(0, 0, 255);
+        p.strokeWeight(1);
+        p.line(cameraX, cameraY, leftX, leftY);
+        p.line(cameraX, cameraY, rightX, rightY);
+
+        for (let i = -fov / 2; i <= fov / 2; i += 10) {
+          let angle = baseAngle + p.radians(i);
+          let dx = p.cos(angle);
+          let dy = p.sin(angle);
+          let x, y;
+          if (dy > 0) {
+            let t = (groundY - cameraY) / dy;
+            x = cameraX + dx * t;
+            y = groundY;
+          } else {
+            let t = (dx > 0 ? (p.width - cameraX) : -cameraX) / dx;
+            x = cameraX + dx * t;
+            y = cameraY + dy * t;
+          }
+          p.stroke(0, 0, 255, 100);
+          p.line(cameraX, cameraY, x, y);
+        }
+
+        // Dibuixar els objectes amb formes
+        for (let obj of objects) {
+          let isInFov = obj.x + obj.w >= Math.min(leftX, rightX) && obj.x <= Math.max(leftX, rightX);
+          p.push();
+          p.translate(obj.x, obj.y);
+
+          if (obj.type === "persona") {
+            // Persona: tors, cap, braços i cames (1,7 m = 170 píxels)
+            p.fill(obj.color[0], obj.color[1], obj.color[2]);
+            p.noStroke();
+            p.rect(0, 0, obj.w, 100); // Tors (100 píxels)
+            p.ellipse(obj.w / 2, -10, 20, 20); // Cap (20 píxels de diàmetre, afegeix 10 píxels a l'alçada total)
+            p.stroke(obj.color[0], obj.color[1], obj.color[2]);
+            p.strokeWeight(2);
+            p.line(obj.w / 2, 0, -obj.w / 2, 30); // Braç esquerre
+            p.line(obj.w / 2, 0, obj.w * 1.5, 30); // Braç dret
+            p.line(obj.w / 2, 100, 0, 160); // Cama esquerra (60 píxels)
+            p.line(obj.w / 2, 100, obj.w, 160); // Cama dreta (60 píxels)
+          } else if (obj.type === "taula") {
+            // Taula: superfície i potes (0,9 m = 90 píxels)
+            p.fill(obj.color[0], obj.color[1], obj.color[2]);
+            p.noStroke();
+            p.rect(-obj.w / 2, 0, obj.w * 2, 10); // Superfície (10 píxels d'alçada)
+            p.stroke(obj.color[0], obj.color[1], obj.color[2]);
+            p.strokeWeight(2);
+            p.line(-obj.w / 2 + 5, 10, -obj.w / 2 + 5, 90); // Pota 1 (80 píxels)
+            p.line(-obj.w / 2 + 15, 10, -obj.w / 2 + 15, 90); // Pota 2
+            p.line(obj.w * 1.5 - 15, 10, obj.w * 1.5 - 15, 90); // Pota 3
+            p.line(obj.w * 1.5 - 5, 10, obj.w * 1.5 - 5, 90); // Pota 4
+          } else if (obj.type === "arbre") {
+            // Arbre: tronc i copa (6 m = 600 píxels)
+            p.fill(obj.trunkColor[0], obj.trunkColor[1], obj.trunkColor[2]);
+            p.noStroke();
+            p.rect(obj.w / 4, 0, obj.w / 2, 400); // Tronc (400 píxels)
+            p.fill(obj.color[0], obj.color[1], obj.color[2]);
+            p.triangle(obj.w / 2, -200, obj.w / 2 - obj.w * 1.5, 400, obj.w / 2 + obj.w * 1.5, 400); // Copa (200 píxels d'alçada)
+          } else if (obj.type === "semàfor") {
+            // Semàfor: pal i llums (3 m = 300 píxels)
+            p.fill(obj.color[0], obj.color[1], obj.color[2]);
+            p.noStroke();
+            p.rect(obj.w / 4, 0, obj.w / 2, 270); // Pal (270 píxels)
+            p.fill(200, 0, 0); // Vermell ajustat
+            p.ellipse(obj.w / 2, -30, 10, 10); // Llum vermell
+            p.fill(255, 255, 0); // Groc
+            p.ellipse(obj.w / 2, -20, 10, 10); // Llum groc
+            p.fill(0, 255, 0); // Verd
+            p.ellipse(obj.w / 2, -10, 10, 10); // Llum verd
+          } else if (obj.type === "gos") {
+            // Gos: cos, cap, potes i cua (0,3 m = 30 píxels)
+            p.fill(obj.color[0], obj.color[1], obj.color[2]);
+            p.noStroke();
+            p.rect(0, 0, obj.w, 20); // Cos (20 píxels)
+            p.ellipse(obj.w / 2, -5, 10, 10); // Cap (10 píxels de diàmetre, afegeix 5 píxels a l'alçada total)
+            p.stroke(obj.color[0], obj.color[1], obj.color[2]);
+            p.strokeWeight(2);
+            p.line(obj.w / 2, 20, 0, 30); // Pota esquerra (5 píxels addicionals)
+            p.line(obj.w / 2, 20, obj.w, 30); // Pota dreta (5 píxels addicionals)
+            p.line(obj.w, 10, obj.w * 1.5, 0); // Cua
+          }
+
+          p.pop();
+
+          let objCenterX = obj.x + obj.w / 2;
+          let objTopY = obj.y; // Part superior de l'objecte
+          // Calcular la distància des de l'objectiu de la càmera (cameraX, cameraY)
+          let distance = p.dist(cameraX, cameraY, objCenterX, objTopY);
+          let distanceInMeters = (distance / 100).toFixed(2);
+
+          p.fill(0);
+          p.noStroke();
+          p.textSize(12);
+          p.textAlign(p.CENTER, p.BOTTOM);
+          p.text(`${distanceInMeters}m`, objCenterX, obj.y - 5);
+
+          if (isInFov) {
+            p.stroke(255, 0, 0, 150);
+            p.strokeWeight(1);
+            p.line(cameraX, cameraY, objCenterX, objTopY);
+          }
+
+          // Línia de punts fins a la barra d'alçades (des de la part superior)
+          let scaleX = p.width - 50;
+          p.stroke(100, 100, 100, 255);
+          p.strokeWeight(1);
+          p.drawingContext.setLineDash([5, 5]);
+          p.line(objCenterX, objTopY, scaleX, objTopY);
+          p.drawingContext.setLineDash([]);
+        }
+
+        // Escala vertical
+        let scaleX = p.width - 50;
+        let scaleInterval = 50;
+        let maxHeight = p.height - 40;
+        let scaleTop = maxHeight - 600;
+
+        p.stroke(100);
+        p.strokeWeight(2);
+        p.line(scaleX, scaleTop, scaleX, maxHeight);
+
+        p.stroke(150, 150, 150);
+        p.strokeWeight(1);
+        for (let y = maxHeight; y >= scaleTop; y -= scaleInterval) {
+          let heightInMeters = ((maxHeight - y) / 100).toFixed(1);
+          p.line(scaleX - 10, y, scaleX, y);
+          p.fill(0);
+          p.noStroke();
+          p.textSize(12);
+          p.textAlign(p.RIGHT, p.CENTER);
+          p.text(`${heightInMeters}m`, scaleX - 15, y);
+        }
+
+        // Línia de suport per l’altura de la càmera
+        p.stroke(0);
+        p.strokeWeight(1);
+        p.line(cameraX, cameraY, cameraX, p.height - 40);
+      };
+
+      p.mouseDragged = function() {
+        if (p.mouseX > 0 && p.mouseX < p.width && p.mouseY > 0 && p.mouseY < p.height) {
+          if (selectedObject) {
+            selectedObject.x = p.constrain(p.mouseX - selectedObject.w / 2, 0, p.width - selectedObject.w);
+            // Si l'objecte és l'arbre, mantenir la base al terra
+            if (selectedObject.type === "arbre") {
+              selectedObject.y = p.height - 40; // Base fixa al terra
+            } else {
+              selectedObject.y = p.constrain(p.mouseY - selectedObject.h / 2, 0, p.height - selectedObject.h);
+            }
+          } else if (isMovingCameraX) {
+            // Moure la càmera endavant i enrere
+            cameraX = p.constrain(p.mouseX, 0, p.width);
+          } else {
+            // Moure la càmera amunt i avall
+            cameraHeight = p.constrain(p.height - p.mouseY, 0, p.height);
+          }
+        }
+      };
+
+      p.mousePressed = function() {
+        if (p.mouseX > 0 && p.mouseX < p.width && p.mouseY > 0 && p.mouseY < p.height) {
+          for (let obj of objects) {
+            if (p.mouseX >= obj.x && p.mouseX <= obj.x + obj.w && p.mouseY >= obj.y && p.mouseY <= obj.y + obj.h) {
+              selectedObject = obj;
+              break;
+            }
+          }
+        }
+      };
+
+      p.mouseReleased = function() {
+        selectedObject = null;
+        isMovingCameraX = false;
+      };
+
+      p.keyPressed = function() {
+        // Moure el slider de FOV amb fletxes amunt/avall
+        if (p.keyCode === p.UP_ARROW) {
+          fov = p.constrain(fov + 1, 60, 180);
+          fovSlider.value = fov;
+          fovInput.value = fov;
+          document.getElementById('fovValue').textContent = fov;
+        } else if (p.keyCode === p.DOWN_ARROW) {
+          fov = p.constrain(fov - 1, 60, 180);
+          fovSlider.value = fov;
+          fovInput.value = fov;
+          document.getElementById('fovValue').textContent = fov;
+        }
+
+        // Moure el slider de rotació amb fletxes amunt/avall
+        if (p.keyCode === p.UP_ARROW) {
+          let sliderValue = parseInt(rotationSlider.value) + 1;
+          sliderValue = p.constrain(sliderValue, 0, 180);
+          cameraRotation = p.map(sliderValue, 0, 180, 90, -90);
+          rotationSlider.value = sliderValue;
+          rotationInput.value = sliderValue;
+          document.getElementById('rotationValue').textContent = sliderValue;
+        } else if (p.keyCode === p.DOWN_ARROW) {
+          let sliderValue = parseInt(rotationSlider.value) - 1;
+          sliderValue = p.constrain(sliderValue, 0, 180);
+          cameraRotation = p.map(sliderValue, 0, 180, 90, -90);
+          rotationSlider.value = sliderValue;
+          rotationInput.value = sliderValue;
+          document.getElementById('rotationValue').textContent = sliderValue;
+        }
+
+        // Activar el moviment horitzontal de la càmera amb les fletxes esquerra/dreta
+        if (p.keyCode === p.LEFT_ARROW || p.keyCode === p.RIGHT_ARROW) {
+          isMovingCameraX = true;
+        }
+      };
+
+      p.keyReleased = function() {
+        if (p.keyCode === p.LEFT_ARROW || p.keyCode === p.RIGHT_ARROW) {
+          isMovingCameraX = false;
+        }
+      };
+    };
+
+    // Crear la instància de p5 per al sketch principal
+    new p5(mainSketch);
+  </script>
+</body>
+</html>

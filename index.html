@@ -7,9 +7,11 @@
   <style>
     body {
       display: flex;
-      flex-direction: column;
-      align-items: center;
+      flex-direction: row;
+      align-items: flex-start;
       font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
     }
     .container {
       display: flex;
@@ -21,26 +23,47 @@
       margin: 10px;
     }
     .controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       margin: 10px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    input[type="range"][orient="vertical"] {
+      writing-mode: bt-lr; /* IE */
+      -webkit-appearance: slider-vertical; /* WebKit */
+      width: 8px;
+      height: 150px;
+      padding: 0 5px;
     }
     input[type="number"] {
       width: 60px;
-      margin-left: 5px;
+      margin-top: 5px;
+    }
+    label, span {
+      font-size: 16px;
     }
   </style>
 </head>
 <body>
   <div class="controls">
-    <label for="fovSlider">Angle de visió (FOV): </label>
-    <input type="range" id="fovSlider" min="60" max="180" value="120">
-    <input type="number" id="fovInput" min="60" max="180" value="120">
-    <span id="fovValue">120</span> graus
-  </div>
-  <div class="controls">
-    <label for="rotationSlider">Rotació de la càmera: </label>
-    <input type="range" id="rotationSlider" min="0" max="180" value="90">
-    <input type="number" id="rotationInput" min="0" max="180" value="90">
-    <span id="rotationValue">90</span> graus
+    <div class="control-group">
+      <label for="fovSlider">Angle de visió (FOV):</label>
+      <input type="range" id="fovSlider" min="60" max="180" value="120" orient="vertical">
+      <input type="number" id="fovInput" min="60" max="180" value="120">
+      <span id="fovValue">120</span> graus
+    </div>
+    <div class="control-group">
+      <label for="rotationSlider">Rotació de la càmera:</label>
+      <input type="range" id="rotationSlider" min="0" max="180" value="90" orient="vertical">
+      <input type="number" id="rotationInput" min="0" max="180" value="90">
+      <span id="rotationValue">90</span> graus
+    </div>
   </div>
   <div class="container" id="canvasContainer"></div>
 
@@ -57,10 +80,10 @@
     // Canvas principal (vista 2D lateral)
     let mainSketch = function(p) {
       p.setup = function() {
-        let canvas = p.createCanvas(800, 640);
+        let canvas = p.createCanvas(800, 480); // Reduïm l'amplada a 800 píxels
         canvas.parent('canvasContainer');
 
-        // Crear objectes representatius
+        // Crear objectes representatius (posicions ajustades per al nou espai)
         objects.push({ x: 200, y: p.height - 40 - 170, w: 20, h: 170, type: "persona", color: [255, 165, 0] }); // Persona (1,7 m)
         objects.push({ x: 300, y: p.height - 40 - 90, w: 40, h: 90, type: "taula", color: [139, 69, 19] }); // Taula (0,9 m)
         objects.push({ x: 400, y: p.height - 40, w: 30, h: 600, type: "arbre", color: [34, 139, 34], trunkColor: [101, 67, 33] }); // Arbre (6 m)
@@ -136,9 +159,9 @@
           let labelY = cameraY + r * p.sin(endAngle);
           p.fill(0);
           p.noStroke();
-          p.textSize(12);
+          p.textSize(24); // Mida més gran per a l'iPhone
           p.textAlign(p.CENTER, p.CENTER);
-          p.text(`${r/100}m`, labelX + 30, labelY);
+          p.text(`${r/100}m`, labelX + 50, labelY);
         }
 
         // Dibuixar la càmera amb forma
@@ -158,9 +181,9 @@
         let cameraHeightInMeters = (cameraHeight / 100).toFixed(2);
         p.fill(0);
         p.noStroke();
-        p.textSize(12);
+        p.textSize(24); // Mida més gran per a l'iPhone
         p.textAlign(p.RIGHT, p.CENTER);
-        p.text(`${cameraHeightInMeters}m`, cameraX - 20, cameraY);
+        p.text(`${cameraHeightInMeters}m`, cameraX - 30, cameraY);
 
         // Dibuixar el camp de visió
         let leftAngle = baseAngle - fovRad;
@@ -280,9 +303,9 @@
 
           p.fill(0);
           p.noStroke();
-          p.textSize(12);
+          p.textSize(24); // Mida més gran per a l'iPhone
           p.textAlign(p.CENTER, p.BOTTOM);
-          p.text(`${distanceInMeters}m`, objCenterX, obj.y - 5);
+          p.text(`${distanceInMeters}m`, objCenterX, obj.y - 10);
 
           if (isInFov) {
             p.stroke(255, 0, 0, 150);
@@ -299,7 +322,7 @@
           p.drawingContext.setLineDash([]);
         }
 
-        // Escala vertical
+        // Escala vertical (ajustada per al nou espai)
         let scaleX = p.width - 50;
         let scaleInterval = 50;
         let maxHeight = p.height - 40;
@@ -316,9 +339,9 @@
           p.line(scaleX - 10, y, scaleX, y);
           p.fill(0);
           p.noStroke();
-          p.textSize(12);
+          p.textSize(24); // Mida més gran per a l'iPhone
           p.textAlign(p.RIGHT, p.CENTER);
-          p.text(`${heightInMeters}m`, scaleX - 15, y);
+          p.text(`${heightInMeters}m`, scaleX - 20, y);
         }
 
         // Línia de suport per l’altura de la càmera

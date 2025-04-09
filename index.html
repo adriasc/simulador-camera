@@ -38,7 +38,7 @@
       writing-mode: bt-lr; /* IE */
       -webkit-appearance: slider-vertical; /* WebKit */
       width: 8px;
-      height: 150px;
+      height: 100px; /* Reduït per ser més curt */
       padding: 0 5px;
     }
     input[type="number"] {
@@ -53,16 +53,22 @@
 <body>
   <div class="controls">
     <div class="control-group">
-      <label for="fovSlider">Angle de visió (FOV):</label>
+      <label for="fovSlider">FOV:</label>
       <input type="range" id="fovSlider" min="60" max="180" value="120" orient="vertical">
       <input type="number" id="fovInput" min="60" max="180" value="120">
-      <span id="fovValue">120</span> graus
+      <span id="fovValue">120</span>
     </div>
     <div class="control-group">
-      <label for="rotationSlider">Rotació de la càmera:</label>
+      <label for="rotationSlider">ROT:</label>
       <input type="range" id="rotationSlider" min="0" max="180" value="90" orient="vertical">
       <input type="number" id="rotationInput" min="0" max="180" value="90">
-      <span id="rotationValue">90</span> graus
+      <span id="rotationValue">90</span>
+    </div>
+    <div class="control-group">
+      <label for="cameraHeightSlider">CAM:</label>
+      <input type="range" id="cameraHeightSlider" min="0" max="480" value="160" orient="vertical">
+      <input type="number" id="cameraHeightInput" min="0" max="480" value="160">
+      <span id="cameraHeightValue">160</span>
     </div>
   </div>
   <div class="container" id="canvasContainer"></div>
@@ -74,7 +80,7 @@
     let cameraRotation = 90; // Rotació inicial
     let objects = []; // Array d'objectes
     let selectedObject = null; // Objecte seleccionat per moure
-    let fovSlider, rotationSlider, fovInput, rotationInput; // Controls lliscants i inputs
+    let fovSlider, rotationSlider, fovInput, rotationInput, cameraHeightSlider, cameraHeightInput; // Controls lliscants i inputs
     let isMovingCameraX = false; // Controlar si estem movent la càmera en l'eix X
 
     // Canvas principal (vista 2D lateral)
@@ -95,6 +101,8 @@
         fovInput = document.getElementById('fovInput');
         rotationSlider = document.getElementById('rotationSlider');
         rotationInput = document.getElementById('rotationInput');
+        cameraHeightSlider = document.getElementById('cameraHeightSlider');
+        cameraHeightInput = document.getElementById('cameraHeightInput');
 
         // Actualitzar FOV amb el slider
         fovSlider.addEventListener('input', () => {
@@ -128,6 +136,23 @@
             cameraRotation = p.map(value, 0, 180, 90, -90);
             rotationSlider.value = value;
             document.getElementById('rotationValue').textContent = value;
+          }
+        });
+
+        // Actualitzar alçada de la càmera amb el slider
+        cameraHeightSlider.addEventListener('input', () => {
+          cameraHeight = parseInt(cameraHeightSlider.value);
+          cameraHeightInput.value = cameraHeight;
+          document.getElementById('cameraHeightValue').textContent = cameraHeight;
+        });
+
+        // Actualitzar alçada de la càmera amb l'input numèric
+        cameraHeightInput.addEventListener('input', () => {
+          let value = parseInt(cameraHeightInput.value);
+          if (value >= 0 && value <= 480) {
+            cameraHeight = value;
+            cameraHeightSlider.value = cameraHeight;
+            document.getElementById('cameraHeightValue').textContent = cameraHeight;
           }
         });
       };

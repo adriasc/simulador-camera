@@ -37,32 +37,32 @@
     input[type="range"][orient="vertical"] {
       writing-mode: bt-lr; /* IE */
       -webkit-appearance: slider-vertical; /* WebKit */
-      width: 8px;
-      height: 150px;
+      width: 12px; /* Més ample per facilitar el moviment */
+      height: 200px; /* Més alt per facilitar el moviment */
       padding: 0 5px;
     }
     input[type="number"] {
       width: 60px;
       margin-top: 5px;
-    }
-    label, span {
       font-size: 16px;
+    }
+    label {
+      font-size: 16px;
+      margin-bottom: 5px;
     }
   </style>
 </head>
 <body>
   <div class="controls">
     <div class="control-group">
-      <label for="fovSlider">Angle de visió (FOV):</label>
+      <label for="fovSlider">FOV</label>
       <input type="range" id="fovSlider" min="60" max="180" value="120" orient="vertical">
       <input type="number" id="fovInput" min="60" max="180" value="120">
-      <span id="fovValue">120</span> graus
     </div>
     <div class="control-group">
-      <label for="rotationSlider">Rotació de la càmera:</label>
+      <label for="rotationSlider">ROT</label>
       <input type="range" id="rotationSlider" min="0" max="180" value="90" orient="vertical">
       <input type="number" id="rotationInput" min="0" max="180" value="90">
-      <span id="rotationValue">90</span> graus
     </div>
   </div>
   <div class="container" id="canvasContainer"></div>
@@ -76,11 +76,12 @@
     let selectedObject = null; // Objecte seleccionat per moure
     let fovSlider, rotationSlider, fovInput, rotationInput; // Controls lliscants i inputs
     let isMovingCameraX = false; // Controlar si estem movent la càmera en l'eix X
+    let isMovingCameraY = false; // Controlar si estem movent la càmera en l'eix Y
 
     // Canvas principal (vista 2D lateral)
     let mainSketch = function(p) {
       p.setup = function() {
-        let canvas = p.createCanvas(800, 480); // Reduïm l'amplada a 800 píxels
+        let canvas = p.createCanvas(880, 480); // Amplada augmentada a 880 píxels
         canvas.parent('canvasContainer');
 
         // Crear objectes representatius (posicions ajustades per al nou espai)
@@ -100,7 +101,6 @@
         fovSlider.addEventListener('input', () => {
           fov = parseInt(fovSlider.value);
           fovInput.value = fov;
-          document.getElementById('fovValue').textContent = fov;
         });
 
         // Actualitzar FOV amb l'input numèric
@@ -109,7 +109,6 @@
           if (value >= 60 && value <= 180) {
             fov = value;
             fovSlider.value = fov;
-            document.getElementById('fovValue').textContent = fov;
           }
         });
 
@@ -118,7 +117,6 @@
           let sliderValue = parseInt(rotationSlider.value);
           cameraRotation = p.map(sliderValue, 0, 180, 90, -90);
           rotationInput.value = sliderValue;
-          document.getElementById('rotationValue').textContent = sliderValue;
         });
 
         // Actualitzar rotació amb l'input numèric
@@ -127,7 +125,6 @@
           if (value >= 0 && value <= 180) {
             cameraRotation = p.map(value, 0, 180, 90, -90);
             rotationSlider.value = value;
-            document.getElementById('rotationValue').textContent = value;
           }
         });
       };
@@ -361,21 +358,35 @@
               selectedObject.y = p.constrain(p.mouseY - selectedObject.h / 2, 0, p.height - selectedObject.h);
             }
           } else if (isMovingCameraX) {
-            // Moure la càmera endavant i enrere
-            cameraX = p.constrain(p.mouseX, 0, p.width);
-          } else {
-            // Moure la càmera amunt i avall
-            cameraHeight = p.constrain(p.height - p.mouseY, 0, p.height);
+            // Moure la càmera endavant i enrere (només si estàs dins de l'àrea de la càmera)
+            if (p.dist(p.mouseX, p.mouseY, cameraX, cameraY) < 50) { // Àrea de 50 píxels al voltant de la càmera
+              cameraX = p.constrain(p.mouseX, 0, p.width);
+            }
+          } else if (isMovingCameraY) {
+            // Moure la càmera amunt i avall (només si estàs dins de l'àrea de la càmera)
+            if (p.dist(p.mouseX, p.mouseY, cameraX, cameraY) < 50) { // Àrea de 50 píxels al voltant de la càmera
+              cameraHeight = p.constrain(p.height - p.mouseY, 0, p.height);
+            }
           }
         }
       };
 
       p.mousePressed = function() {
         if (p.mouseX > 0 && p.mouseX < p.width && p.mouseY > 0 && p.mouseY < p.height) {
-          for (let obj of objects) {
-            if (p.mouseX >= obj.x && p.mouseX <= obj.x + obj.w && p.mouseY >= obj.y && p.mouseY <= obj.y + obj.h) {
-              selectedObject = obj;
-              break;
+          // Comprovar si s'està arrossegant la càmera
+          if (p.dist(p.mouseX, p.mouseY, cameraX, p.height - cameraHeight) < 50) {
+            if (p.keyIsDown(p.LEFT_ARROW) || p.keyIsDown(p.RIGHT_ARROW)) {
+              isMovingCameraX = true;
+            } else {
+              isMovingCameraY = true;
+            }
+          } else {
+            // Comprovar si s'està arrossegant un objecte
+            for (let obj of objects) {
+              if (p.mouseX >= obj.x && p.mouseX <= obj.x + obj.w && p.mouseY >= obj.y && p.mouseY <= obj.y + obj.h) {
+                selectedObject = obj;
+                break;
+              }
             }
           }
         }
@@ -384,6 +395,7 @@
       p.mouseReleased = function() {
         selectedObject = null;
         isMovingCameraX = false;
+        isMovingCameraY = false;
       };
 
       p.keyPressed = function() {
@@ -392,12 +404,10 @@
           fov = p.constrain(fov + 1, 60, 180);
           fovSlider.value = fov;
           fovInput.value = fov;
-          document.getElementById('fovValue').textContent = fov;
         } else if (p.keyCode === p.DOWN_ARROW) {
           fov = p.constrain(fov - 1, 60, 180);
           fovSlider.value = fov;
           fovInput.value = fov;
-          document.getElementById('fovValue').textContent = fov;
         }
 
         // Moure el slider de rotació amb fletxes amunt/avall
@@ -407,14 +417,12 @@
           cameraRotation = p.map(sliderValue, 0, 180, 90, -90);
           rotationSlider.value = sliderValue;
           rotationInput.value = sliderValue;
-          document.getElementById('rotationValue').textContent = sliderValue;
         } else if (p.keyCode === p.DOWN_ARROW) {
           let sliderValue = parseInt(rotationSlider.value) - 1;
           sliderValue = p.constrain(sliderValue, 0, 180);
           cameraRotation = p.map(sliderValue, 0, 180, 90, -90);
           rotationSlider.value = sliderValue;
           rotationInput.value = sliderValue;
-          document.getElementById('rotationValue').textContent = sliderValue;
         }
 
         // Activar el moviment horitzontal de la càmera amb les fletxes esquerra/dreta
